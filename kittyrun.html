@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Hello Kitty 跑酷</title>
+<style>
+  body { margin: 0; overflow: hidden; font-family: sans-serif; background: #87CEEB; }
+  #gameCanvas { display: block; margin: 0 auto; border: 2px solid #000; background: #87CEEB; }
+  #scoreBoard { position: absolute; top: 10px; left: 10px; font-size: 20px; color: black; }
+</style>
+</head>
+<body>
+<div id="scoreBoard">分数: 0</div>
+<canvas id="gameCanvas" width="600" height="400"></canvas>
+
+<script>
+// 获取画布
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const scoreBoard = document.getElementById("scoreBoard");
+
+// 加载本地图片
+const kittyImg = new Image();
+kittyImg.src = 'images/kitty.jpg';
+const coinImg = new Image();
+coinImg.src = 'images/coin.png';
+
+// 游戏参数
+let kitty = { x: 50, y: 300, width: 50, height: 50, dy: 0, gravity: 1.2, jumpPower: -15 };
+let obstacles = [];
+let coins = [];
+let score = 0;
+let gameOver = false;
+
+// 随机生成障碍物
+function createObstacle() {
+    const height = Math.random() * 50 + 30;
+    obstacles.push({ x: canvas.width, y: canvas.height - height, width: 20, height: height });
+}
+
+// 随机生成金币
+function createCoin() {
+    const y = Math.random() * 200 + 50;
+    coins.push({ x: canvas.width, y: y, width: 30, height: 30 });
+}
+
+// 游戏循环
+function gameLoop() {
+    if(gameOver) {
+        ctx.fillStyle = "red";
+        ctx.font = "30px Arial";
+        ctx.fillText("游戏结束！得分：" + score, 120, 200);
+        return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#87CEEB";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Kitty 重力运动
+    kitty.dy += kitty.gravity;
+    kitty.y += kitty.dy;
+    if(kitty.y > canvas.height - kitty.height) { kitty.y = canvas.height - kitty.height; kitty.dy = 0; }
+
+    // 绘制 Kitty
+    ctx.drawImage(kittyImg, kitty.x, kitty.y, kitty.width, kitty.height);
+
+    // 绘制障碍物
+    for(let i = obstacles.length - 1; i >= 0; i--) {
+        obstacles[i].x -= 5;
+        ctx.fillStyle = "green";
+        ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+
+        // 碰撞检测
+        if(kitty.x < obstacles[i].x + obstacles[i].width &&
+           kitty.x + kitty.width > obstacles[i].x &&
+           kitty.y < obstacles[i].y + obstacles[i].height &&
+           kitty.y + kitty.height > obstacles[i].y) {
+            gameOver = true;
+        }
+
+        if(obstacles[i].x + obstacles[i].width < 0) obstacles.splice(i, 1);
+    }
+
+    // 绘制金币
+    for(let i = coins.length - 1; i >= 0; i--) {
+        coins[i].x -= 5;
+        ctx.drawImage(coinImg, coins[i].x, coins[i].y, coins[i].width, coins[i].height);
+
+        // 收集金币
+        if(kitty.x < coins[i].x + coins[i].width &&
+           kitty.x + kitty.width > coins[i].x &&
+           kitty.y < coins[i].y + coins[i].height &&
+           kitty.y + kitty.height > coins[i].y) {
+            score += 5;
+            coins.splice(i, 1);
+        }
+
+        if(coins[i] && coins[i].x + coins[i].width < 0) coins.splice(i, 1);
+    }
+
+    scoreBoard.innerText = "分数: " + score;
+
+    requestAnimationFrame(gameLoop);
+}
+
+// 跳跃事件
+document.addEventListener("keydown", (e) => {
+    if((e.code === "Space" || e.code === "ArrowUp") && kitty.y === canvas.height - kitty.height) {
+        kitty.dy = kitty.jumpPower;
+    }
+});
+
+// 定时生成障碍物和金币
+setInterval(createObstacle, 1500);
+setInterval(createCoin, 2500);
+
+// 游戏开始
+kittyImg.onload = () => { coinImg.onload = () => { gameLoop(); } }
+</script>
+</body>
+</html>
+
